@@ -1,0 +1,164 @@
+use audiotags::Tag;
+use std::{env::home_dir, fs::read_dir, path::PathBuf};
+
+use crossterm::event::{KeyCode, KeyEvent};
+
+pub struct Browser {
+    current_path: PathBuf,
+    selected: u32,
+}
+
+impl Browser {
+    pub fn new() -> Browser {
+        Browser {
+            current_path: home_dir().unwrap(),
+            selected: 0,
+        }
+    }
+
+    pub fn handle_key_event(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
+        match key_event.code {
+            KeyCode::Char('h') => self.select_first()?,
+            KeyCode::Char('j') => self.select_next()?,
+            KeyCode::Char('k') => self.select_previous()?,
+            KeyCode::Char('l') => self.select_last()?,
+            KeyCode::Enter => self.select()?,
+            KeyCode::Backspace => self.go_back()?,
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub fn list_dir(&self) -> color_eyre::Result<Vec<String>> {
+        let mut data = read_dir(self.current_path.clone())?
+            .filter_map(|item| {
+                item.ok()
+                    .map(|e| {
+                        e.path()
+                            .into_os_string()
+                            .into_string()
+                            .expect("String conversion")
+                    })
+                    .filter(|en| !en.contains("/."))
+            })
+            .collect::<Vec<String>>();
+
+        data.sort();
+
+        if data
+            .iter()
+            .any(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
+        {
+            return self.sort_songs(&data);
+        }
+
+        Ok(data)
+    }
+
+    fn sort_songs(&self, data: &[String]) -> color_eyre::Result<Vec<String>> {
+        let songs: Vec<String> = data
+            .iter()
+            .filter(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
+            .filter_map(|entry| entry.split("/").last())
+            .map(|entry| entry.to_string())
+            .collect();
+
+        let track_numbers: Vec<u16> = data
+            .iter()
+            .filter(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
+            .map(|entry| {
+                Tag::new()
+                    .read_from_path(entry)
+                    .expect("tja")
+                    .track_number()
+                    .expect("tja")
+            })
+            .collect();
+
+        let mut vec_tupel: Vec<(String, u16)> = vec![];
+
+        for i in 0..track_numbers.len() {
+            vec_tupel.push((songs[i].clone(), track_numbers[i]));
+        }
+
+        vec_tupel.sort_by_key(|k| k.1);
+
+        Ok(vec_tupel
+            .into_iter()
+            .map(|entry| entry.0)
+            .collect::<Vec<String>>())
+    }
+
+    pub fn go_to(&mut self, path: &str) -> color_eyre::Result<()> {
+        for item in self.list_dir()? {
+            if item.ends_with(path) {
+                self.current_path.push(path);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn go_to_path(&mut self, path: PathBuf) -> color_eyre::Result<()> {
+        if path.is_dir() {
+            self.select_first()?;
+            self.current_path = path;
+        } else if path.is_file() && path.as_path().extension().is_some_and(|ext| ext == "mp3") {
+            println!("Play file");
+        }
+
+        Ok(())
+    }
+
+    fn go_back(&mut self) -> color_eyre::Result<()> {
+        self.select_first()?;
+        self.current_path.pop();
+        Ok(())
+    }
+
+    fn select_first(&mut self) -> color_eyre::Result<()> {
+        self.selected = 0;
+        Ok(())
+    }
+
+    fn select_next(&mut self) -> color_eyre::Result<()> {
+        if self.selected < self.get_selected_len()? - 1 {
+            self.selected += 1;
+        }
+
+        Ok(())
+    }
+
+    fn select_previous(&mut self) -> color_eyre::Result<()> {
+        if self.selected > 0 {
+            self.selected -= 1;
+        }
+
+        Ok(())
+    }
+
+    fn select_last(&mut self) -> color_eyre::Result<()> {
+        self.selected = self.get_selected_len()? - 1;
+        Ok(())
+    }
+
+    fn select(&mut self) -> color_eyre::Result<()> {
+        self.go_to_path(self.get_selected_path()?)?;
+        Ok(())
+    }
+
+    pub fn get_selected(&self) -> color_eyre::Result<u32> {
+        Ok(self.selected)
+    }
+
+    fn get_selected_path(&self) -> color_eyre::Result<PathBuf> {
+        Ok(PathBuf::from(
+            self.list_dir()?[self.get_selected()? as usize].clone(),
+        ))
+    }
+
+    fn get_selected_len(&self) -> color_eyre::Result<u32> {
+        Ok(self.list_dir()?.len() as u32)
+    }
+}
