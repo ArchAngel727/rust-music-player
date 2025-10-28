@@ -1,7 +1,10 @@
 use audiotags::Tag;
+use crossterm::event::{KeyCode, KeyEvent};
 use std::{env::home_dir, fs::read_dir, path::PathBuf};
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crate::{
+    player::PlayerCommand, player_controller::PlayerController, player_message::PlayerMessage,
+};
 
 pub struct Browser {
     current_path: PathBuf,
@@ -16,13 +19,19 @@ impl Browser {
         }
     }
 
-    pub fn handle_key_event(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
+    pub fn handle_key_event(
+        &mut self,
+        key_event: KeyEvent,
+        pc: &mut PlayerController,
+    ) -> color_eyre::Result<()> {
         match key_event.code {
             KeyCode::Char('h') => self.select_first()?,
             KeyCode::Char('j') => self.select_next()?,
             KeyCode::Char('k') => self.select_previous()?,
             KeyCode::Char('l') => self.select_last()?,
-            KeyCode::Enter => self.select()?,
+            KeyCode::Char('p') => pc.toggle()?,
+            KeyCode::Char('s') => pc.skip()?,
+            KeyCode::Enter => self.select(pc)?,
             KeyCode::Backspace => self.go_back()?,
             _ => {}
         }
@@ -100,17 +109,6 @@ impl Browser {
         Ok(())
     }
 
-    fn go_to_path(&mut self, path: PathBuf) -> color_eyre::Result<()> {
-        if path.is_dir() {
-            self.select_first()?;
-            self.current_path = path;
-        } else if path.is_file() && path.as_path().extension().is_some_and(|ext| ext == "mp3") {
-            println!("Play file");
-        }
-
-        Ok(())
-    }
-
     fn go_back(&mut self) -> color_eyre::Result<()> {
         self.select_first()?;
         self.current_path.pop();
@@ -143,8 +141,17 @@ impl Browser {
         Ok(())
     }
 
-    fn select(&mut self) -> color_eyre::Result<()> {
-        self.go_to_path(self.get_selected_path()?)?;
+    pub fn select(&mut self, player_controller: &mut PlayerController) -> color_eyre::Result<()> {
+        let mut path = self.current_path.clone();
+        path.push(self.get_selected_path()?);
+
+        if path.is_dir() {
+            self.select_first()?;
+            self.current_path = path;
+        } else if path.as_path().extension().is_some_and(|ext| ext == "mp3") {
+            player_controller.send_command(PlayerMessage::new(PlayerCommand::Play, Some(path)))?;
+        }
+
         Ok(())
     }
 

@@ -44,12 +44,12 @@ impl Ui {
         .split(frame.area());
 
         self.draw_header(frame, layout[0]);
-        self.draw_footer(frame, layout[2], app.browser.get_selected()?);
+        self.draw_footer(frame, layout[2], app)?;
 
         match self.get_current_window() {
             Window::Home => self.home(frame, layout[1]),
             Window::Browser => self.browser(app, frame, layout[1])?,
-            Window::Queue => self.queue(frame, layout[1]),
+            Window::Queue => self.queue(app, frame, layout[1])?,
         };
 
         Ok(())
@@ -73,12 +73,21 @@ impl Ui {
         frame.render_widget(block, area);
     }
 
-    fn draw_footer(&self, frame: &mut Frame, area: Rect, selected: u32) {
+    fn draw_footer(&self, frame: &mut Frame, area: Rect, app: &App) -> color_eyre::Result<()> {
         let block = Block::new()
-            .title(Line::from(format!(" {} ", selected)).centered())
+            .title(
+                Line::from(format!(
+                    " {} {} ",
+                    app.player_controller.get_player_state_as_string()?,
+                    app.player_controller.get_current_song()?
+                ))
+                .centered(),
+            )
             .borders(Borders::TOP);
 
         frame.render_widget(block, area);
+
+        Ok(())
     }
 
     fn home(&self, frame: &mut Frame, area: Rect) {
@@ -115,9 +124,12 @@ impl Ui {
         Ok(())
     }
 
-    fn queue(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::new().borders(Borders::LEFT | Borders::RIGHT);
+    fn queue(&self, app: &App, frame: &mut Frame, area: Rect) -> color_eyre::Result<()> {
+        let block = Block::new()
+            .title(Line::from(app.player_controller.get_player_state_as_string()?).centered());
 
         frame.render_widget(block, area);
+
+        Ok(())
     }
 }

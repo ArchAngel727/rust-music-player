@@ -3,6 +3,7 @@ use ratatui::DefaultTerminal;
 
 use crate::{
     browser::{self, Browser},
+    player_controller::PlayerController,
     ui,
 };
 
@@ -10,26 +11,23 @@ pub struct App {
     running: bool,
     ui: ui::Ui,
     pub browser: browser::Browser,
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
-    }
+    pub player_controller: PlayerController,
 }
 
 impl App {
-    pub fn new() -> App {
-        App {
+    pub fn new() -> color_eyre::Result<App> {
+        Ok(App {
             running: true,
             ui: ui::Ui::new(),
             browser: Browser::new(),
-        }
+            player_controller: PlayerController::new()?,
+        })
     }
 
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
-        let _ = self.browser.go_to("Music"); // Debug code
-        let _ = self.browser.go_to("Albums"); // Debug code
+        // init browser;
+        self.browser.go_to("Music")?; // Debug code
+        self.browser.go_to("Albums")?; // Debug code
 
         while self.running {
             terminal.draw(|frame| self.ui.draw(self, frame).expect("UI Error"))?;
@@ -54,13 +52,9 @@ impl App {
             KeyCode::Char('1') => self.ui.set_current_window(ui::Window::Home),
             KeyCode::Char('2') => self.ui.set_current_window(ui::Window::Browser),
             KeyCode::Char('3') => self.ui.set_current_window(ui::Window::Queue),
-            KeyCode::Char('h') => self.browser.handle_key_event(key_event)?,
-            KeyCode::Char('j') => self.browser.handle_key_event(key_event)?,
-            KeyCode::Char('k') => self.browser.handle_key_event(key_event)?,
-            KeyCode::Char('l') => self.browser.handle_key_event(key_event)?,
-            KeyCode::Enter => self.browser.handle_key_event(key_event)?,
-            KeyCode::Backspace => self.browser.handle_key_event(key_event)?,
-            _ => {}
+            _ => self
+                .browser
+                .handle_key_event(key_event, &mut self.player_controller)?,
         }
 
         Ok(())

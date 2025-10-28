@@ -1,14 +1,17 @@
 mod app;
 mod browser;
+mod player;
+mod player_controller;
+mod player_message;
 mod ui;
 
 use crate::app::App;
 
 fn main() -> color_eyre::Result<()> {
-    let mut app = App::new();
+    let app = App::new();
 
     let terminal = ratatui::init();
-    let _ = app.run(terminal);
+    app?.run(terminal)?;
     ratatui::restore();
     Ok(())
 }
