@@ -4,6 +4,7 @@ use ratatui::DefaultTerminal;
 use crate::{
     browser::{self, Browser},
     player_controller::PlayerController,
+    queue::Queue,
     ui,
 };
 
@@ -12,6 +13,7 @@ pub struct App {
     ui: ui::Ui,
     pub browser: browser::Browser,
     pub player_controller: PlayerController,
+    pub queue: Queue,
 }
 
 impl App {
@@ -21,6 +23,7 @@ impl App {
             ui: ui::Ui::new(),
             browser: Browser::new(),
             player_controller: PlayerController::new()?,
+            queue: Queue::new(),
         })
     }
 
@@ -52,9 +55,15 @@ impl App {
             KeyCode::Char('1') => self.ui.set_current_window(ui::Window::Home),
             KeyCode::Char('2') => self.ui.set_current_window(ui::Window::Browser),
             KeyCode::Char('3') => self.ui.set_current_window(ui::Window::Queue),
-            _ => self
-                .browser
-                .handle_key_event(key_event, &mut self.player_controller)?,
+            KeyCode::Char('p') => self.player_controller.toggle()?,
+            KeyCode::Char('s') => self.player_controller.skip()?,
+            KeyCode::Char('S') => self.player_controller.stop()?,
+            _ => {
+                if self.ui.get_current_window() == ui::Window::Browser {
+                    self.browser
+                        .handle_key_event(key_event, &mut self.player_controller)?
+                }
+            }
         }
 
         Ok(())

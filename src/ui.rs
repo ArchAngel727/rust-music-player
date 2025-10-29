@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::app::App;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Window {
     Home,
     Browser,
@@ -76,11 +76,17 @@ impl Ui {
     fn draw_footer(&self, frame: &mut Frame, area: Rect, app: &App) -> color_eyre::Result<()> {
         let block = Block::new()
             .title(
-                Line::from(format!(
-                    " {} {} ",
-                    app.player_controller.get_player_state_as_string()?,
-                    app.player_controller.get_current_song()?
-                ))
+                Line::from(
+                    if let Some(title) = app.player_controller.queue.get_current_song()? {
+                        format!(
+                            " {} {} ",
+                            app.player_controller.get_player_state_as_string()?,
+                            title
+                        )
+                    } else {
+                        format!(" {} ", app.player_controller.get_player_state_as_string()?)
+                    },
+                )
                 .centered(),
             )
             .borders(Borders::TOP);

@@ -71,4 +71,10 @@ impl Player {
             sink.skip_one();
         }
     }
+
+    pub fn stop(&self) {
+        if let Some(sink) = &self.sink {
+            sink.stop();
+        }
+    }
 }

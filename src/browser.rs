@@ -4,6 +4,7 @@ use std::{env::home_dir, fs::read_dir, path::PathBuf};
 
 use crate::{
     player::PlayerCommand, player_controller::PlayerController, player_message::PlayerMessage,
+    queue::Queue,
 };
 
 pub struct Browser {
@@ -29,8 +30,6 @@ impl Browser {
             KeyCode::Char('j') => self.select_next()?,
             KeyCode::Char('k') => self.select_previous()?,
             KeyCode::Char('l') => self.select_last()?,
-            KeyCode::Char('p') => pc.toggle()?,
-            KeyCode::Char('s') => pc.skip()?,
             KeyCode::Enter => self.select(pc)?,
             KeyCode::Backspace => self.go_back()?,
             _ => {}
