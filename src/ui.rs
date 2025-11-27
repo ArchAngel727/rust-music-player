@@ -3,7 +3,7 @@ use ratatui::{
     prelude::{Constraint, Stylize},
     style::{palette::tailwind, Style},
     text::Line,
-    widgets::{Block, Borders, List, ListState, Paragraph},
+    widgets::{Block, BorderType, Borders, List, ListState, Paragraph},
     Frame,
 };
 
@@ -131,10 +131,30 @@ impl Ui {
     }
 
     fn queue(&self, app: &App, frame: &mut Frame, area: Rect) -> color_eyre::Result<()> {
-        let block = Block::new()
-            .title(Line::from(app.player_controller.get_player_state_as_string()?).centered());
+        //let block = Block::new()
+        //    .title(Line::from(app.player_controller.get_player_state_as_string()?).centered());
+        //
+        //frame.render_widget(block, area);
 
-        frame.render_widget(block, area);
+        let queue = app.player_controller.queue.get_queue()?;
+
+        let mut list_items: Vec<String> = Vec::new();
+
+        if queue.is_empty() {
+            list_items.push(String::from("Empty"))
+        } else {
+            list_items = queue
+                .iter()
+                .enumerate()
+                .map(|(i, str)| format!("{i}. {str}"))
+                .collect();
+        }
+
+        //println!("{:?}", list_items);
+
+        let list = List::new(list_items);
+
+        frame.render_widget(list, area);
 
         Ok(())
     }

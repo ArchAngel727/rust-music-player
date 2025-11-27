@@ -20,6 +20,10 @@ impl Queue {
         self.song_queue.pop_front();
     }
 
+    pub fn get_queue(&self) -> color_eyre::Result<Vec<String>> {
+        Ok(self.song_queue.clone().into())
+    }
+
     pub fn get_current_song(&self) -> color_eyre::Result<Option<String>> {
         if !self.song_queue.is_empty() {
             Ok(Some(self.song_queue[0].clone()))

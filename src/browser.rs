@@ -1,10 +1,10 @@
 use audiotags::Tag;
+use color_eyre::eyre::eyre;
 use crossterm::event::{KeyCode, KeyEvent};
 use std::{env::home_dir, fs::read_dir, path::PathBuf};
 
 use crate::{
     player::PlayerCommand, player_controller::PlayerController, player_message::PlayerMessage,
-    queue::Queue,
 };
 
 pub struct Browser {
@@ -42,13 +42,14 @@ impl Browser {
         let mut data = read_dir(self.current_path.clone())?
             .filter_map(|item| {
                 item.ok()
-                    .map(|e| {
-                        e.path()
+                    .map(|entry| {
+                        entry
+                            .path()
                             .into_os_string()
                             .into_string()
                             .expect("String conversion")
                     })
-                    .filter(|en| !en.contains("/."))
+                    .filter(|entry| !entry.contains("/."))
             })
             .collect::<Vec<String>>();
 
@@ -58,10 +59,30 @@ impl Browser {
             .iter()
             .any(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
         {
-            return self.sort_songs(&data);
+            //return self.sort_songs(&data);
+            match self.sort_songs(&data) {
+                Ok(sorted_songs) => return Ok(sorted_songs),
+                Err(_e) => return Ok(data),
+            };
         }
 
         Ok(data)
+    }
+
+    fn get_track_numbers(&self, data: &[String]) -> color_eyre::Result<Vec<u16>> {
+        let track_numbers: color_eyre::Result<Vec<u16>> = data
+            .iter()
+            .filter(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
+            .map(|entry| {
+                Tag::new()
+                    .read_from_path(entry)
+                    .map_err(|e| eyre!("Failed to read tag. {e}"))?
+                    .track_number()
+                    .ok_or_else(|| eyre!("File does not contain track number."))
+            })
+            .collect();
+
+        track_numbers
     }
 
     fn sort_songs(&self, data: &[String]) -> color_eyre::Result<Vec<String>> {
@@ -72,17 +93,7 @@ impl Browser {
             .map(|entry| entry.to_string())
             .collect();
 
-        let track_numbers: Vec<u16> = data
-            .iter()
-            .filter(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
-            .map(|entry| {
-                Tag::new()
-                    .read_from_path(entry)
-                    .expect("tja")
-                    .track_number()
-                    .expect("tja")
-            })
-            .collect();
+        let track_numbers = self.get_track_numbers(data)?;
 
         let mut vec_tupel: Vec<(String, u16)> = vec![];
 
