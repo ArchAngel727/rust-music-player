@@ -59,7 +59,6 @@ impl Browser {
             .iter()
             .any(|entry| entry.ends_with(".mp3") || entry.ends_with(".flac"))
         {
-            //return self.sort_songs(&data);
             match self.sort_songs(&data) {
                 Ok(sorted_songs) => return Ok(sorted_songs),
                 Err(_e) => return Ok(data),

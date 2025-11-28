@@ -3,8 +3,7 @@ use ratatui::DefaultTerminal;
 
 use crate::{
     browser::{self, Browser},
-    player_controller::{self, PlayerController},
-    queue::Queue,
+    player_controller::PlayerController,
     ui,
 };
 

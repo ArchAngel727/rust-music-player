@@ -3,7 +3,7 @@ use ratatui::{
     prelude::{Constraint, Stylize},
     style::{palette::tailwind, Style},
     text::Line,
-    widgets::{Block, BorderType, Borders, List, ListState, Paragraph},
+    widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
 
@@ -118,7 +118,27 @@ impl Ui {
 
         const SELECTED_STYLE: Style = Style::new().bg(tailwind::BLUE.c700);
 
-        let list = List::new(app.browser.list_dir()?)
+        let list_items: Vec<String> = app
+            .browser
+            .list_dir()?
+            .iter()
+            .filter_map(|entry| {
+                let parts: Vec<&str> = entry.split("/").collect();
+                if parts.len() >= 2 {
+                    Some(format!(
+                        "{}/{}",
+                        parts[parts.len() - 2],
+                        parts[parts.len() - 1]
+                    ))
+                } else if parts.len() == 1 {
+                    Some(parts[0].to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let list = List::new(list_items)
             .highlight_style(SELECTED_STYLE)
             .highlight_symbol("> ")
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
@@ -131,11 +151,6 @@ impl Ui {
     }
 
     fn queue(&self, app: &App, frame: &mut Frame, area: Rect) -> color_eyre::Result<()> {
-        //let block = Block::new()
-        //    .title(Line::from(app.player_controller.get_player_state_as_string()?).centered());
-        //
-        //frame.render_widget(block, area);
-
         let queue = app.player_controller.queue.get_queue()?;
 
         let mut list_items: Vec<String> = Vec::new();
@@ -146,11 +161,9 @@ impl Ui {
             list_items = queue
                 .iter()
                 .enumerate()
-                .map(|(i, str)| format!("{i}. {str}"))
+                .map(|(i, str)| format!("{index}. {str}", index = i + 1))
                 .collect();
         }
-
-        //println!("{:?}", list_items);
 
         let list = List::new(list_items);
 
