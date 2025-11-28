@@ -1,14 +1,14 @@
-use std::{sync::mpsc, thread};
+use std::{sync::mpsc, thread, sync::mpsc::TryRecvError};
 
 use color_eyre::eyre::eyre;
 
 use crate::{
-     player::{Player, PlayerCommand, PlayerState}, player_message::PlayerMessage, queue::Queue
+     player::{Player, PlayerCommand, PlayerState}, player_controller_message::{ControllerCommand, PlayerControllerCommand}, player_message::PlayerMessage, queue::Queue
 };
 
 pub struct PlayerController {
     sender: mpsc::Sender<PlayerMessage>,
-    receiver: Option<mpsc::Receiver<PlayerState>>,
+    receiver: Option<mpsc::Receiver<PlayerControllerCommand>>,
     player_state: PlayerState,
     pub queue: Queue
 }
@@ -35,7 +35,7 @@ impl PlayerController {
         self.receiver = Some(receiver);
 
         thread::spawn(move || -> color_eyre::Result<()> {
-            let mut player = Player::new();
+            let mut player = Player::new(tx);
 
             let stream_handle = rodio::OutputStreamBuilder::open_default_stream()
                 .expect("open default audio stream");
@@ -53,6 +53,8 @@ impl PlayerController {
                             player.add_to_queue(message.clone())?;
 
                             player.set_player_state(PlayerState::Playing)?;
+
+                            player.add_callback()?;
                         }
                     }
                     PlayerCommand::PlayPause => player.play_pause()?,
@@ -60,7 +62,7 @@ impl PlayerController {
                     PlayerCommand::Stop => player.stop(),
                 }
 
-                tx.send(player.get_player_state()?)?;
+                player.tx.send(PlayerControllerCommand::new(ControllerCommand::UpdateState, Some(player.get_player_state()?)))?;
             }
         });
 
@@ -86,12 +88,30 @@ impl PlayerController {
             PlayerCommand::Stop => self.queue.clear(),
         }
 
-        if let Some(rx) = &self.receiver {
-            if let PlayerState::Playing = rx.recv()? {
-                self.player_state = PlayerState::Playing;
+        self.check_for_message()?;
 
-            } else {
-                self.player_state = PlayerState::Paused;
+        Ok(())
+    }
+
+    pub fn check_for_message(&mut self) -> color_eyre::Result<()> {
+        if let Some(rx) = &self.receiver {
+            let pcc = match rx.try_recv() {
+                Ok(message) => message,
+                Err(TryRecvError::Empty) | Err(TryRecvError::Disconnected) => return Ok(()),
+            };
+
+            match pcc.get_command() {
+                ControllerCommand::UpdateState => {
+                    if let Some(PlayerState::Playing) = pcc.get_state()? {
+                        self.player_state = PlayerState::Playing;
+
+                    } else {
+                        self.player_state = PlayerState::Paused;
+                    }
+                },
+                ControllerCommand::PopQueue => {
+                    self.queue.pop();
+                },
             }
         } else {
             return Err(eyre!("Channel does not exist!"));

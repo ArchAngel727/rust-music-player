@@ -1,5 +1,6 @@
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::DefaultTerminal;
+use std::time::Duration;
 
 use crate::{
     browser::{self, Browser},
@@ -27,22 +28,26 @@ impl App {
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
         // init browser;
         self.browser.go_to("Music")?; // Debug code
-        self.browser.go_to("Albums")?; // Debug code
 
         while self.running {
+            self.player_controller.check_for_message()?;
             terminal.draw(|frame| self.ui.draw(self, frame).expect("UI Error"))?;
             self.handle_events()?;
         }
+
         Ok(())
     }
 
     fn handle_events(&mut self) -> color_eyre::Result<()> {
-        match event::read()? {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)?
+        if event::poll(Duration::from_millis(50))? {
+            match event::read()? {
+                Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                    self.handle_key_event(key_event)?
+                }
+                _ => {}
             }
-            _ => {}
         }
+
         Ok(())
     }
 

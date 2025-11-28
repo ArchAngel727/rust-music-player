@@ -2,6 +2,7 @@ mod app;
 mod browser;
 mod player;
 mod player_controller;
+mod player_controller_message;
 mod player_message;
 mod queue;
 mod ui;

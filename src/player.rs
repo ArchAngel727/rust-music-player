@@ -1,5 +1,7 @@
-use rodio::{Decoder, Sink};
-use std::{fs::File, io::BufReader, path::PathBuf};
+use rodio::{source::EmptyCallback, Decoder, Sink};
+use std::{fs::File, io::BufReader, path::PathBuf, sync::mpsc};
+
+use crate::player_controller_message::{ControllerCommand, PlayerControllerCommand};
 
 #[derive(Clone)]
 pub enum PlayerState {
@@ -18,13 +20,15 @@ pub enum PlayerCommand {
 pub struct Player {
     player_state: PlayerState,
     sink: Option<Sink>,
+    pub tx: mpsc::Sender<PlayerControllerCommand>,
 }
 
 impl Player {
-    pub fn new() -> Player {
+    pub fn new(tx: mpsc::Sender<PlayerControllerCommand>) -> Player {
         Player {
             player_state: PlayerState::Paused,
             sink: None,
+            tx,
         }
     }
 
@@ -76,5 +80,22 @@ impl Player {
         if let Some(sink) = &self.sink {
             sink.stop();
         }
+    }
+
+    pub fn add_callback(&self) -> color_eyre::Result<()> {
+        let tx = self.tx.clone();
+
+        let callback = EmptyCallback::new(Box::new(move || {
+            let _ = tx.send(PlayerControllerCommand::new(
+                ControllerCommand::PopQueue,
+                None,
+            ));
+        }));
+
+        if let Some(sink) = &self.sink {
+            sink.append(callback);
+        }
+
+        Ok(())
     }
 }
