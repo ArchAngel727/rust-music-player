@@ -157,7 +157,11 @@ impl Browser {
         if path.is_dir() {
             self.select_first()?;
             self.current_path = path;
-        } else if path.as_path().extension().is_some_and(|ext| ext == "mp3") {
+        } else if path
+            .as_path()
+            .extension()
+            .is_some_and(|ext| ext == "mp3" || ext == "flac")
+        {
             player_controller.send_command(PlayerMessage::new(PlayerCommand::Play, Some(path)))?;
         }
 

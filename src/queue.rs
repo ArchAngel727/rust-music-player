@@ -26,7 +26,11 @@ impl Queue {
 
     pub fn get_current_song(&self) -> color_eyre::Result<Option<String>> {
         if !self.song_queue.is_empty() {
-            Ok(Some(self.song_queue[0].clone()))
+            if let Some(split) = self.song_queue[0].clone().rsplit_once(".") {
+                Ok(Some(split.0.to_string()))
+            } else {
+                Ok(None)
+            }
         } else {
             Ok(None)
         }

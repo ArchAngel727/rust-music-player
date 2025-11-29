@@ -39,7 +39,7 @@ impl App {
     }
 
     fn handle_events(&mut self) -> color_eyre::Result<()> {
-        if event::poll(Duration::from_millis(50))? {
+        if event::poll(Duration::from_millis(250))? {
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     self.handle_key_event(key_event)?
@@ -60,7 +60,6 @@ impl App {
             KeyCode::Char('p') => self.player_controller.toggle()?,
             KeyCode::Char('s') => self.player_controller.skip()?,
             KeyCode::Char('S') => self.player_controller.stop()?,
-            KeyCode::Char('o') => println!("{:?}", self.player_controller.queue.get_queue()),
             _ => {
                 if self.ui.get_current_window() == ui::Window::Browser {
                     self.browser

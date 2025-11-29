@@ -83,12 +83,11 @@ impl PlayerController {
                             self.queue.add(title.to_string());
                 }
             },
-            PlayerCommand::PlayPause => {},
-            PlayerCommand::Skip => self.queue.pop(),
             PlayerCommand::Stop => self.queue.clear(),
+            _ => {}
         }
 
-        self.check_for_message()?;
+        //self.check_for_message()?;
 
         Ok(())
     }
