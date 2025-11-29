@@ -14,8 +14,16 @@ pub struct Browser {
 
 impl Browser {
     pub fn new() -> Browser {
+        let home: PathBuf;
+
+        if let Some(home_dir) = home_dir() {
+            home = home_dir
+        } else {
+            home = PathBuf::from("/home");
+        }
+
         Browser {
-            current_path: home_dir().unwrap(),
+            current_path: home,
             selected: 0,
         }
     }

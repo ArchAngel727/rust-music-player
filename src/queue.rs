@@ -36,14 +36,6 @@ impl Queue {
         }
     }
 
-    pub fn get_next_song(&self) -> color_eyre::Result<Option<String>> {
-        if self.song_queue.len() > 1 {
-            Ok(Some(self.song_queue[1].clone()))
-        } else {
-            Ok(None)
-        }
-    }
-
     pub fn clear(&mut self) {
         self.song_queue.clear();
     }
