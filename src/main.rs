@@ -5,6 +5,7 @@ mod player_controller;
 mod player_controller_message;
 mod player_message;
 mod queue;
+mod song;
 mod ui;
 
 use crate::app::App;

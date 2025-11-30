@@ -43,7 +43,7 @@ impl App {
     }
 
     fn handle_events(&mut self) -> color_eyre::Result<()> {
-        if event::poll(Duration::from_millis(250))? {
+        if event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     self.handle_key_event(key_event)?

@@ -1,8 +1,9 @@
+use crate::song::Song;
 use std::collections::VecDeque;
 
 #[derive(Clone)]
 pub struct Queue {
-    song_queue: VecDeque<String>,
+    song_queue: VecDeque<Song>,
 }
 
 impl Queue {
@@ -12,25 +13,21 @@ impl Queue {
         }
     }
 
-    pub fn add(&mut self, string: String) {
-        self.song_queue.push_back(string);
+    pub fn add(&mut self, song: Song) {
+        self.song_queue.push_back(song);
     }
 
     pub fn pop(&mut self) {
         self.song_queue.pop_front();
     }
 
-    pub fn get_queue(&self) -> color_eyre::Result<Vec<String>> {
+    pub fn get_queue(&self) -> color_eyre::Result<Vec<Song>> {
         Ok(self.song_queue.clone().into())
     }
 
-    pub fn get_current_song(&self) -> color_eyre::Result<Option<String>> {
+    pub fn get_current_song(&self) -> color_eyre::Result<Option<Song>> {
         if !self.song_queue.is_empty() {
-            if let Some(split) = self.song_queue[0].clone().rsplit_once(".") {
-                Ok(Some(split.0.to_string()))
-            } else {
-                Ok(None)
-            }
+            Ok(Some(self.song_queue[0].clone()))
         } else {
             Ok(None)
         }

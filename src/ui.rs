@@ -1,3 +1,4 @@
+use crate::app::App;
 use ratatui::{
     layout::{Direction, Flex, Layout, Rect},
     prelude::{Constraint, Stylize},
@@ -6,8 +7,6 @@ use ratatui::{
     widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
-
-use crate::app::App;
 
 #[derive(Clone, PartialEq)]
 pub enum Window {
@@ -77,12 +76,26 @@ impl Ui {
         let block = Block::new()
             .title(
                 Line::from(
-                    if let Some(title) = app.player_controller.queue.get_current_song()? {
-                        format!(
-                            " {} {} ",
-                            app.player_controller.get_player_state_as_string()?,
-                            title
-                        )
+                    // check lenght
+                    if let Some(song) = app.player_controller.queue.get_current_song()? {
+                        if let Some(title) = song.get_title()? {
+                            if let Some(artist) = song.get_artist()? {
+                                format!(
+                                    " {}: {} - {} ",
+                                    app.player_controller.get_player_state_as_string()?,
+                                    artist,
+                                    title
+                                )
+                            } else {
+                                format!(
+                                    " {} {} ",
+                                    app.player_controller.get_player_state_as_string()?,
+                                    title
+                                )
+                            }
+                        } else {
+                            format!(" {} ", app.player_controller.get_player_state_as_string()?)
+                        }
                     } else {
                         format!(" {} ", app.player_controller.get_player_state_as_string()?)
                     },
@@ -160,8 +173,9 @@ impl Ui {
         } else {
             list_items = queue
                 .iter()
+                .filter_map(|song| song.get_title().ok()?)
                 .enumerate()
-                .map(|(i, str)| format!("{index}. {str}", index = i + 1))
+                .map(|(i, song)| format!("{}. {:?}", i + 1, song))
                 .collect();
         }
 

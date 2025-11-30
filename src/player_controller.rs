@@ -1,16 +1,18 @@
-use std::{sync::mpsc, thread, sync::mpsc::TryRecvError};
-
-use color_eyre::eyre::eyre;
-
 use crate::{
-     player::{Player, PlayerCommand, PlayerState}, player_controller_message::{ControllerCommand, PlayerControllerCommand}, player_message::PlayerMessage, queue::Queue
+    player::{Player, PlayerCommand, PlayerState},
+    player_controller_message::{ControllerCommand, PlayerControllerCommand},
+    player_message::PlayerMessage,
+    queue::Queue,
+    song::Song,
 };
+use color_eyre::eyre::eyre;
+use std::{sync::mpsc, sync::mpsc::TryRecvError, thread};
 
 pub struct PlayerController {
     sender: mpsc::Sender<PlayerMessage>,
     receiver: Option<mpsc::Receiver<PlayerControllerCommand>>,
     player_state: PlayerState,
-    pub queue: Queue
+    pub queue: Queue,
 }
 
 impl PlayerController {
@@ -21,7 +23,7 @@ impl PlayerController {
             sender: tx,
             receiver: None,
             player_state: PlayerState::Paused,
-            queue: Queue::new()
+            queue: Queue::new(),
         };
 
         pc.init_player(rx)?;
@@ -62,7 +64,10 @@ impl PlayerController {
                     PlayerCommand::Stop => player.stop(),
                 }
 
-                player.tx.send(PlayerControllerCommand::new(ControllerCommand::UpdateState, Some(player.get_player_state()?)))?;
+                player.tx.send(PlayerControllerCommand::new(
+                    ControllerCommand::UpdateState,
+                    Some(player.get_player_state()?),
+                ))?;
             }
         });
 
@@ -74,20 +79,13 @@ impl PlayerController {
 
         match command.get_command() {
             PlayerCommand::Play => {
-                if let Some(message) = command.get_message()?
-                   && let Some(title) = message.into_os_string()
-                        .into_string()
-                        .expect("String conversion")
-                        .split("/")
-                        .last() {
-                            self.queue.add(title.to_string());
+                if let Some(path) = command.get_message()? {
+                    self.queue.add(Song::new(path));
                 }
-            },
+            }
             PlayerCommand::Stop => self.queue.clear(),
             _ => {}
         }
-
-        //self.check_for_message()?;
 
         Ok(())
     }
@@ -103,14 +101,13 @@ impl PlayerController {
                 ControllerCommand::UpdateState => {
                     if let Some(PlayerState::Playing) = pcc.get_state()? {
                         self.player_state = PlayerState::Playing;
-
                     } else {
                         self.player_state = PlayerState::Paused;
                     }
-                },
+                }
                 ControllerCommand::PopQueue => {
                     self.queue.pop();
-                },
+                }
             }
         } else {
             return Err(eyre!("Channel does not exist!"));
@@ -138,7 +135,7 @@ impl PlayerController {
         Ok(())
     }
 
-    pub fn stop(&mut self) -> color_eyre::Result<()>{
+    pub fn stop(&mut self) -> color_eyre::Result<()> {
         self.send_command(PlayerMessage::new(PlayerCommand::Stop, None))?;
 
         Ok(())
