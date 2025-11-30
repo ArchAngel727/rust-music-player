@@ -78,8 +78,14 @@ impl Ui {
                 Line::from(
                     // check lenght
                     if let Some(song) = app.player_controller.queue.get_current_song()? {
-                        if let Some(title) = song.get_title()? {
+                        if let Some(mut title) = song.get_title()? {
                             if let Some(artist) = song.get_artist()? {
+                                if title.starts_with(&artist) {
+                                    title = title.replacen(&artist, "", 1);
+                                    title = title.replacen("-", "", 1);
+                                    title = title.trim().to_string();
+                                }
+
                                 format!(
                                     " {}: {} - {} ",
                                     app.player_controller.get_player_state_as_string()?,
@@ -175,7 +181,7 @@ impl Ui {
                 .iter()
                 .filter_map(|song| song.get_title().ok()?)
                 .enumerate()
-                .map(|(i, song)| format!("{}. {:?}", i + 1, song))
+                .map(|(i, song)| format!("{}. {}", i + 1, song))
                 .collect();
         }
 

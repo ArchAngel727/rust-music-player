@@ -12,19 +12,17 @@ pub struct Song {
 impl Song {
     pub fn new(path: PathBuf) -> Song {
         let mut title: Option<String> = None;
-        let mut artist: Option<String> = None;
+        let artist: Option<String> = Tag::new()
+            .read_from_path(path.clone())
+            .ok()
+            .and_then(|tag| tag.artist().map(|a| a.to_owned()));
 
         if let Some(str) = path.to_str()
             && let Some(filename) = str.split("/").last()
                 && let Some(split) = filename.rsplit_once(".") {
                 title = Some(split.0.to_string());
         }
-
-        artist = Tag::new()
-            .read_from_path(path.clone())
-            .ok()
-            .and_then(|tag| tag.artist().map(|a| a.to_owned()));
-
+        
         Song { title, artist, path }
     }
 
